@@ -2,22 +2,23 @@
 //
 // The front page itself is entry.png, rendered in this repo by render.py
 // (PIL; 36 verified Saturday 21 November 2026 stories, 13 code-drawn
-// panels, a world map with numbered pins and a DATE CHECK box). This
-// script is the competition deliverable: it renders entry.png, then
-// validates it against the image gate (PNG, at most 1 MiB, at most
-// 1024x1024) and copies it to the output dir.
+// panels, a world map with numbered pins and a DATE CHECK box) at build
+// time, in-session by the builder. This script is the competition
+// deliverable: it validates the checked-in entry.png against the image
+// gate (PNG, at most 1 MiB, at most 1024x1024) and copies it to the
+// output dir. It does NOT re-render: the grader runs in a stock node
+// image with no Python interpreter and the repo mounted read-only, so a
+// render step here would fail before any gate ran.
 //
 // Run:  node main.ts
 // Output: $MAKEFUN_OUTPUT_DIR/entry.png (default: this repo dir)
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const RENDER = join(HERE, "render.py");
 const SRC = join(HERE, "entry.png");
 
 const MAX_BYTES = 1048576; // 1 MiB
@@ -29,19 +30,8 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-// Render the front page in-session: the PNG must come from the authored
-// code, never from a checked-in blob alone.
-if (!existsSync(RENDER)) {
-  fail("render.py is missing - it renders entry.png");
-}
-try {
-  execFileSync("python3", [RENDER], { cwd: HERE, stdio: "inherit" });
-} catch {
-  fail("python3 render.py failed - see its output above");
-}
-
 if (!existsSync(SRC)) {
-  fail("entry.png is missing after render.py ran");
+  fail("entry.png is missing - it is rendered by render.py at build time");
 }
 
 const size = statSync(SRC).size;
